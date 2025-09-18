@@ -7,6 +7,7 @@ import { CarFilters } from '@/components/CarFilters';
 import { CarDetailModal } from '@/components/CarDetailModal';
 import { LoginModal } from '@/components/LoginModal';
 import { ReportsPage } from '@/components/ReportsPage';
+import { ThemeSelector } from '@/components/ThemeSelector';
 import { Car, FilterOptions } from '@/types/auction';
 import { mockCars } from '@/data/mockData';
 
@@ -131,6 +132,7 @@ export const AuctionPortal = () => {
                 ← Back to Auctions
               </Button>
               <div className="flex items-center gap-4">
+                <ThemeSelector />
                 <Button variant="outline" onClick={() => setShowLogin(true)}>
                   <User className="w-4 h-4 mr-2" />
                   {isLoggedIn ? 'Account' : 'Login'}
@@ -179,6 +181,8 @@ export const AuctionPortal = () => {
             </div>
 
             <div className="flex items-center gap-4">
+              <ThemeSelector />
+              
               <Button
                 variant="ghost"
                 size="sm"
