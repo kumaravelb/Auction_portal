@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, EyeOff, User, Shield } from 'lucide-react';
+import { Eye, EyeOff, User, Shield, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -23,19 +24,52 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     password: '',
     confirmPassword: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { login, register } = useAuth();
 
-  const handleLogin = (userType: 'user' | 'admin') => {
-    // Here you would typically make an API call to authenticate
-    toast({
-      title: `${userType === 'admin' ? 'Admin' : 'User'} Login Successful!`,
-      description: `Welcome back! You are now logged in as ${userType}.`,
-      variant: "default",
-    });
-    onClose();
+  const handleLogin = async () => {
+    if (!loginData.email || !loginData.password) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const success = await login(loginData.email, loginData.password);
+
+      if (success) {
+        toast({
+          title: "Login Successful!",
+          description: "Welcome back to the auction portal!",
+          variant: "default",
+        });
+        onClose();
+        // Reset form
+        setLoginData({ email: '', password: '' });
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "Invalid email or password. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Login Error",
+        description: "An error occurred during login. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (signupData.password !== signupData.confirmPassword) {
       toast({
         title: "Password Mismatch",
@@ -45,13 +79,55 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       return;
     }
 
-    // Here you would typically make an API call to create the account
-    toast({
-      title: "Account Created Successfully!",
-      description: "Welcome to the auction portal! You can now start bidding.",
-      variant: "default",
-    });
-    onClose();
+    if (!signupData.firstName || !signupData.lastName || !signupData.email || !signupData.password) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const fullName = `${signupData.firstName} ${signupData.lastName}`;
+      const success = await register({
+        name: fullName,
+        emailId: signupData.email,
+        password: signupData.password,
+      });
+
+      if (success) {
+        toast({
+          title: "Account Created Successfully!",
+          description: "Welcome to the auction portal! You are now logged in.",
+          variant: "default",
+        });
+        onClose();
+        // Reset form
+        setSignupData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+          confirmPassword: ''
+        });
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: "Unable to create account. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Registration Error",
+        description: "An error occurred during registration. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -111,24 +187,18 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               </div>
 
               <div className="space-y-3">
-                <Button 
-                  variant="premium" 
+                <Button
+                  variant="premium"
                   className="w-full"
-                  onClick={() => handleLogin('user')}
-                  disabled={!loginData.email || !loginData.password}
+                  onClick={handleLogin}
+                  disabled={!loginData.email || !loginData.password || isLoading}
                 >
-                  <User className="w-4 h-4 mr-2" />
-                  Sign in as User
-                </Button>
-
-                <Button 
-                  variant="auction" 
-                  className="w-full"
-                  onClick={() => handleLogin('admin')}
-                  disabled={!loginData.email || !loginData.password}
-                >
-                  <Shield className="w-4 h-4 mr-2" />
-                  Sign in as Admin
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <User className="w-4 h-4 mr-2" />
+                  )}
+                  {isLoading ? 'Signing in...' : 'Sign In'}
                 </Button>
               </div>
 
@@ -216,19 +286,23 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 />
               </div>
 
-              <Button 
-                variant="premium" 
+              <Button
+                variant="premium"
                 className="w-full"
                 onClick={handleSignup}
                 disabled={
-                  !signupData.firstName || 
-                  !signupData.lastName || 
-                  !signupData.email || 
-                  !signupData.password || 
-                  !signupData.confirmPassword
+                  !signupData.firstName ||
+                  !signupData.lastName ||
+                  !signupData.email ||
+                  !signupData.password ||
+                  !signupData.confirmPassword ||
+                  isLoading
                 }
               >
-                Create Account
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : null}
+                {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">

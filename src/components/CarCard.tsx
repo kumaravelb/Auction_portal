@@ -1,17 +1,23 @@
 import { useState } from 'react';
-import { Clock, Eye, Users, MapPin } from 'lucide-react';
+import { Clock, Eye, Users, MapPin, Edit, Settings, ImageOff, Car as CarIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Car } from '@/types/auction';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CarCardProps {
   car: Car;
   onViewDetails: (car: Car) => void;
+  onEdit?: (car: Car) => void;
 }
 
-export const CarCard = ({ car, onViewDetails }: CarCardProps) => {
+export const CarCard = ({ car, onViewDetails, onEdit }: CarCardProps) => {
   const [imageError, setImageError] = useState(false);
+  const { isAdmin } = useAuth();
+
+  // Check if car has valid images
+  const hasImages = car.images && car.images.length > 0 && car.images[0] && car.images[0].trim() !== '';
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -38,13 +44,30 @@ export const CarCard = ({ car, onViewDetails }: CarCardProps) => {
   return (
     <Card className="group cursor-pointer overflow-hidden bg-gradient-card border-border/50 hover:border-primary/30 hover:shadow-glow transition-all duration-500">
       <div className="relative aspect-[4/3] overflow-hidden">
-        <img
-          src={imageError ? '/api/placeholder/400/300' : car.images[0]}
-          alt={`${car.year} ${car.make} ${car.model}`}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          onError={() => setImageError(true)}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {hasImages && !imageError ? (
+          <>
+            <img
+              src={car.images[0]}
+              alt={`${car.year} ${car.make} ${car.model}`}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              onError={() => setImageError(true)}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          </>
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-muted/30 to-muted/60 flex flex-col items-center justify-center text-muted-foreground">
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative">
+                <CarIcon className="w-16 h-16 text-muted-foreground/40" />
+                <ImageOff className="w-8 h-8 text-muted-foreground/60 absolute -bottom-1 -right-1 bg-background rounded-full p-1" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-muted-foreground">Preview Not Available</p>
+                <p className="text-xs text-muted-foreground/70">No image found</p>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Condition Badge */}
         <Badge 
@@ -96,22 +119,34 @@ export const CarCard = ({ car, onViewDetails }: CarCardProps) => {
 
           {/* Action Buttons */}
           <div className="flex gap-2 pt-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="flex-1 group-hover:border-primary/50"
               onClick={() => onViewDetails(car)}
             >
               <Eye className="w-4 h-4 mr-2" />
               View Details
             </Button>
-            <Button 
-              variant="default" 
-              size="sm" 
-              className="flex-1 bg-gradient-primary hover:shadow-glow"
-            >
-              Place Bid
-            </Button>
+            {isAdmin && onEdit ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="flex-1 border-muted-foreground/20 hover:border-primary/50"
+                onClick={() => onEdit(car)}
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                className="flex-1 bg-gradient-primary hover:shadow-glow"
+              >
+                Place Bid
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

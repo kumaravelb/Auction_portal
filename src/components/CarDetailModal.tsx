@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Calendar, MapPin, Gauge, Fuel, Cog, Eye, Users, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Calendar, MapPin, Gauge, Fuel, Cog, Eye, Users, Clock, ChevronLeft, ChevronRight, ImageOff, Car as CarIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,9 @@ export const CarDetailModal = ({ car, isOpen, onClose }: CarDetailModalProps) =>
   const { toast } = useToast();
 
   if (!car) return null;
+
+  // Check if car has valid images
+  const hasImages = car.images && car.images.length > 0 && car.images[0] && car.images[0].trim() !== '';
 
   const carBids = mockBids.filter(bid => bid.carId === car.id);
   const latestBids = carBids.slice(0, 5);
@@ -96,14 +99,29 @@ export const CarDetailModal = ({ car, isOpen, onClose }: CarDetailModalProps) =>
           {/* Image Gallery */}
           <div className="space-y-4">
             <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-muted">
-              <img
-                src={imageError[currentImageIndex] ? '/api/placeholder/800/600' : car.images[currentImageIndex]}
-                alt={`${car.year} ${car.make} ${car.model}`}
-                className="w-full h-full object-cover"
-                onError={() => setImageError(prev => ({ ...prev, [currentImageIndex]: true }))}
-              />
-              
-              {car.images.length > 1 && (
+              {hasImages && !imageError[currentImageIndex] ? (
+                <img
+                  src={car.images[currentImageIndex]}
+                  alt={`${car.year} ${car.make} ${car.model}`}
+                  className="w-full h-full object-cover"
+                  onError={() => setImageError(prev => ({ ...prev, [currentImageIndex]: true }))}
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-muted/30 to-muted/60 flex flex-col items-center justify-center text-muted-foreground">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative">
+                      <CarIcon className="w-24 h-24 text-muted-foreground/40" />
+                      <ImageOff className="w-12 h-12 text-muted-foreground/60 absolute -bottom-2 -right-2 bg-background rounded-full p-2" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-lg font-medium text-muted-foreground">Preview Not Available</p>
+                      <p className="text-sm text-muted-foreground/70">No image found</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {hasImages && car.images.length > 1 && (
                 <>
                   <Button
                     variant="secondary"
@@ -124,21 +142,23 @@ export const CarDetailModal = ({ car, isOpen, onClose }: CarDetailModalProps) =>
                 </>
               )}
 
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                {car.images.map((_, index) => (
-                  <button
-                    key={index}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      index === currentImageIndex ? 'bg-primary' : 'bg-white/50'
-                    }`}
-                    onClick={() => setCurrentImageIndex(index)}
-                  />
-                ))}
-              </div>
+              {hasImages && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  {car.images.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        index === currentImageIndex ? 'bg-primary' : 'bg-white/50'
+                      }`}
+                      onClick={() => setCurrentImageIndex(index)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Thumbnail Row */}
-            {car.images.length > 1 && (
+            {hasImages && car.images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto">
                 {car.images.map((image, index) => (
                   <button
@@ -148,12 +168,18 @@ export const CarDetailModal = ({ car, isOpen, onClose }: CarDetailModalProps) =>
                     }`}
                     onClick={() => setCurrentImageIndex(index)}
                   >
-                    <img
-                      src={imageError[index] ? '/api/placeholder/80/60' : image}
-                      alt={`View ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      onError={() => setImageError(prev => ({ ...prev, [index]: true }))}
-                    />
+                    {imageError[index] ? (
+                      <div className="w-full h-full bg-gradient-to-br from-muted/30 to-muted/60 flex items-center justify-center">
+                        <ImageOff className="w-4 h-4 text-muted-foreground/60" />
+                      </div>
+                    ) : (
+                      <img
+                        src={image}
+                        alt={`View ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={() => setImageError(prev => ({ ...prev, [index]: true }))}
+                      />
+                    )}
                   </button>
                 ))}
               </div>

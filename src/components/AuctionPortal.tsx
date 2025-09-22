@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Search, User, BarChart3, Gavel, Menu } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Search, User, BarChart3, Gavel, Menu, LogOut, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CarCard } from '@/components/CarCard';
@@ -9,7 +9,9 @@ import { LoginModal } from '@/components/LoginModal';
 import { ReportsPage } from '@/components/ReportsPage';
 import { ThemeSelector } from '@/components/ThemeSelector';
 import { Car, FilterOptions } from '@/types/auction';
-import { mockCars } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { authService } from '@/services/authService';
 
 export const AuctionPortal = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,11 +19,71 @@ export const AuctionPortal = () => {
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const [currentView, setCurrentView] = useState<'auctions' | 'reports'>('auctions');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
+  const [cars, setCars] = useState<Car[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { toast } = useToast();
+
   const getButtonVariant = (targetView: 'auctions' | 'reports') => {
     return currentView === targetView ? 'default' : 'ghost';
   };
+
+  // Transform API inventory data to Car interface
+  const transformInventoryToCar = (inventory: any): Car => {
+    return {
+      id: inventory.id.toString(),
+      make: inventory.make || 'Unknown',
+      model: inventory.model || 'Unknown',
+      year: parseInt(inventory.year) || 2020,
+      mileage: parseInt(inventory.mileage) || 0,
+      condition: 'Good' as const, // Default since API doesn't have condition
+      color: inventory.color || 'Unknown',
+      engine: inventory.engine || 'Unknown',
+      transmission: 'Automatic' as const, // Default since API has different format
+      fuelType: 'Gasoline' as const, // Default since API doesn't have fuel type
+      images: inventory.imageUrls || [],
+      description: `${inventory.year} ${inventory.make} ${inventory.model} located in ${inventory.location}`,
+      startingBid: 1000, // Default starting bid
+      currentBid: 1000, // Default current bid
+      bidCount: 0, // Default bid count
+      auctionEndTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+      seller: inventory.contactName || 'Unknown Seller',
+      location: inventory.location || 'Unknown',
+      vin: inventory.regNo || 'Unknown',
+      isActive: true,
+      features: []
+    };
+  };
+
+  // Load inventory data from API
+  const loadInventoryData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await authService.searchInventory({}, 0, 50, 'DOHA');
+
+      if (response.success && response.data && response.data.content) {
+        const transformedCars = response.data.content.map(transformInventoryToCar);
+        setCars(transformedCars);
+      } else {
+        setError('Failed to load inventory data');
+        setCars([]);
+      }
+    } catch (err) {
+      console.error('Error loading inventory:', err);
+      setError('Failed to connect to inventory service');
+      setCars([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    loadInventoryData();
+  }, []);
   const [filters, setFilters] = useState<FilterOptions>({
     make: [],
     year: { min: 0, max: 0 },
@@ -34,7 +96,7 @@ export const AuctionPortal = () => {
   });
 
   const filteredCars = useMemo(() => {
-    let filtered = mockCars.filter(car => {
+    let filtered = cars.filter(car => {
       // Search query filter
       if (searchQuery) {
         const searchLower = searchQuery.toLowerCase();
@@ -97,7 +159,7 @@ export const AuctionPortal = () => {
     });
 
     return filtered;
-  }, [searchQuery, filters]);
+  }, [searchQuery, filters, cars]);
 
   const clearFilters = () => {
     setFilters({
@@ -117,6 +179,25 @@ export const AuctionPortal = () => {
     setSelectedCar(car);
   };
 
+  const handleEditCar = (car: Car) => {
+    toast({
+      title: "Edit Car",
+      description: `Editing ${car.year} ${car.make} ${car.model}`,
+      variant: "default",
+    });
+    // TODO: Implement edit functionality
+    console.log('Edit car:', car);
+  };
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+      variant: "default",
+    });
+  };
+
   if (currentView === 'reports') {
     return (
       <div className="min-h-screen bg-background">
@@ -133,10 +214,22 @@ export const AuctionPortal = () => {
               </Button>
               <div className="flex items-center gap-4">
                 <ThemeSelector />
-                <Button variant="outline" onClick={() => setShowLogin(true)}>
-                  <User className="w-4 h-4 mr-2" />
-                  {isLoggedIn ? 'Account' : 'Login'}
-                </Button>
+                {isAuthenticated ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {user?.username} {isAdmin && '(Admin)'}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={handleLogout}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="outline" onClick={() => setShowLogin(true)}>
+                    <User className="w-4 h-4 mr-2" />
+                    Login
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -195,10 +288,22 @@ export const AuctionPortal = () => {
                 <Menu className="w-4 h-4" />
               </Button>
               
-              <Button variant="premium" onClick={() => setShowLogin(true)}>
-                <User className="w-4 h-4 mr-2" />
-                {isLoggedIn ? 'Account' : 'Login'}
-              </Button>
+              {isAuthenticated ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground hidden sm:inline">
+                    {user?.username} {isAdmin && '(Admin)'}
+                  </span>
+                  <Button variant="premium" size="sm" onClick={handleLogout}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="premium" onClick={() => setShowLogin(true)}>
+                  <User className="w-4 h-4 mr-2" />
+                  Login
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -241,7 +346,7 @@ export const AuctionPortal = () => {
         {/* Results Summary */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-muted-foreground">
-            Showing {filteredCars.length} of {mockCars.length} auctions
+            Showing {filteredCars.length} of {cars.length} auctions
             {searchQuery && ` for "${searchQuery}"`}
           </p>
           
@@ -253,13 +358,37 @@ export const AuctionPortal = () => {
         </div>
 
         {/* Car Grid */}
-        {filteredCars.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">Loading auctions...</h3>
+            <p className="text-muted-foreground">
+              Please wait while we fetch the latest auction items from our inventory.
+            </p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="w-24 h-24 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-12 h-12 text-destructive" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">Error Loading Auctions</h3>
+            <p className="text-muted-foreground mb-4">
+              {error}
+            </p>
+            <Button variant="outline" onClick={loadInventoryData}>
+              Try Again
+            </Button>
+          </div>
+        ) : filteredCars.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredCars.map((car) => (
               <CarCard
                 key={car.id}
                 car={car}
                 onViewDetails={handleViewDetails}
+                onEdit={isAdmin ? handleEditCar : undefined}
               />
             ))}
           </div>
