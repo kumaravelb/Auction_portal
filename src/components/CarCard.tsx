@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, Eye, Users, MapPin, Edit, Settings, ImageOff, Car as CarIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,11 @@ interface CarCardProps {
 export const CarCard = ({ car, onViewDetails, onEdit }: CarCardProps) => {
   const [imageError, setImageError] = useState(false);
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
+
+  const handleCardClick = () => {
+    navigate(`/vehicle/${car.id}`);
+  };
 
   // Check if car has valid images
   const hasImages = car.images && car.images.length > 0 && car.images[0] && car.images[0].trim() !== '';
@@ -42,7 +48,10 @@ export const CarCard = ({ car, onViewDetails, onEdit }: CarCardProps) => {
   };
 
   return (
-    <Card className="group cursor-pointer overflow-hidden bg-gradient-card border-border/50 hover:border-primary/30 hover:shadow-glow transition-all duration-500">
+    <Card
+      className="group cursor-pointer overflow-hidden bg-gradient-card border-border/50 hover:border-primary/30 hover:shadow-glow transition-all duration-500"
+      onClick={handleCardClick}
+    >
       <div className="relative aspect-[4/3] overflow-hidden">
         {hasImages && !imageError ? (
           <>

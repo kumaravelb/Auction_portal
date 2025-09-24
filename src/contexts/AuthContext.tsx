@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       const response = await authService.login(emailId, password, countryCode);
 
-      if (response.status && response.data) {
+      if (response.success && response.data) {
         const loggedInUser = authService.getUser();
         setUser(loggedInUser);
         return true;

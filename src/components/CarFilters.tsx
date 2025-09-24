@@ -53,7 +53,7 @@ export const CarFilters = ({ filters, onFiltersChange, onClearFilters, isOpen, o
       <Button
         variant="outline"
         onClick={onToggle}
-        className="mb-6 border-border/50 hover:border-primary/50"
+        className="border-border/50 hover:border-primary/50 w-full lg:w-auto"
       >
         <Filter className="w-4 h-4 mr-2" />
         Show Filters
@@ -62,7 +62,7 @@ export const CarFilters = ({ filters, onFiltersChange, onClearFilters, isOpen, o
   }
 
   return (
-    <Card className="mb-6 bg-gradient-card border-border/50">
+    <Card className="bg-gradient-card border-border/50 w-full">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">

@@ -10,7 +10,7 @@ interface LoginRequest {
 }
 
 interface LoginResponse {
-  status: boolean;
+  success: boolean;
   message: string;
   data: {
     token: string;
@@ -137,15 +137,15 @@ class AuthService {
 
       const data: LoginResponse = await response.json();
 
-      if (data.status && data.data) {
+      if (data.success && data.data) {
         this.token = data.data.token;
         this.user = {
-          id: data.data.user.id.toString(),
-          username: data.data.user.name,
-          email: data.data.user.emailId,
-          firstName: data.data.user.name.split(' ')[0] || '',
-          lastName: data.data.user.name.split(' ').slice(1).join(' ') || '',
-          role: data.data.user.userType === 'ADMIN' ? 'admin' : 'user',
+          id: data.data.user.id ? data.data.user.id.toString() : '1',
+          username: data.data.user.name || 'User',
+          email: data.data.user.emailId || emailId,
+          firstName: data.data.user.name ? data.data.user.name.split(' ')[0] || '' : 'User',
+          lastName: data.data.user.name ? data.data.user.name.split(' ').slice(1).join(' ') || '' : '',
+          role: data.data.user.userType === 'A' ? 'admin' : 'user',
           registrationDate: new Date().toISOString(),
           totalBids: 0,
           wonAuctions: 0,
