@@ -18,9 +18,6 @@ export const CarCard = ({ car, onViewDetails, onEdit }: CarCardProps) => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  const handleCardClick = () => {
-    navigate(`/vehicle/${car.id}`);
-  };
 
   // Check if car has valid images
   const hasImages = car.images && car.images.length > 0 && car.images[0] && car.images[0].trim() !== '';
@@ -49,8 +46,7 @@ export const CarCard = ({ car, onViewDetails, onEdit }: CarCardProps) => {
 
   return (
     <Card
-      className="group cursor-pointer overflow-hidden bg-gradient-card border-border/50 hover:border-primary/30 hover:shadow-glow transition-all duration-500"
-      onClick={handleCardClick}
+      className="group overflow-hidden bg-gradient-card border-border/50 hover:border-primary/30 hover:shadow-glow transition-all duration-500"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         {hasImages && !imageError ? (
@@ -87,7 +83,7 @@ export const CarCard = ({ car, onViewDetails, onEdit }: CarCardProps) => {
         </Badge>
         
         {/* Auction Status */}
-        <div className="absolute top-3 right-3 flex items-center gap-1 bg-primary/90 text-primary-foreground px-2 py-1 rounded-md text-xs font-medium">
+        <div className="absolute top-3 right-3 flex items-center gap-1 bg-green-600/90 text-white px-2 py-1 rounded-md text-xs font-medium">
           <Clock className="w-3 h-3" />
           {formatTimeRemaining(car.auctionEndTime)}
         </div>
@@ -132,7 +128,10 @@ export const CarCard = ({ car, onViewDetails, onEdit }: CarCardProps) => {
               variant="outline"
               size="sm"
               className="flex-1 group-hover:border-primary/50"
-              onClick={() => onViewDetails(car)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewDetails(car);
+              }}
             >
               <Eye className="w-4 h-4 mr-2" />
               View Details
@@ -142,7 +141,10 @@ export const CarCard = ({ car, onViewDetails, onEdit }: CarCardProps) => {
                 variant="secondary"
                 size="sm"
                 className="flex-1 border-muted-foreground/20 hover:border-primary/50"
-                onClick={() => onEdit(car)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit && onEdit(car);
+                }}
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
@@ -152,6 +154,10 @@ export const CarCard = ({ car, onViewDetails, onEdit }: CarCardProps) => {
                 variant="default"
                 size="sm"
                 className="flex-1 bg-gradient-primary hover:shadow-glow"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/vehicle/${car.id}`);
+                }}
               >
                 Place Bid
               </Button>

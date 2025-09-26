@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Settings, Gavel, Menu, LogOut, Home, Mail, Info, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeSelector } from '@/components/ThemeSelector';
+import { ResponsiveViewTool } from '@/components/ResponsiveViewTool';
 import { LoginModal } from '@/components/LoginModal';
 import { RegisterModal } from '@/components/RegisterModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +36,7 @@ export const Header = ({ currentView = 'auctions', onViewChange, showNavigation 
   };
 
   const handleHomeClick = () => {
+    console.log('Header: Home button clicked, navigating to /');
     navigate('/');
     if (onViewChange) {
       onViewChange('auctions');
@@ -44,11 +46,11 @@ export const Header = ({ currentView = 'auctions', onViewChange, showNavigation 
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-border/50 bg-gradient-card/95 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-screen-2xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-4 cursor-pointer" onClick={handleHomeClick}>
-                <div className="w-24 h-16 rounded-lg flex items-center justify-center overflow-hidden bg-white/10">
+                <div className="w-32 h-20 rounded-lg flex items-center justify-center overflow-hidden bg-white/10">
                   <img
                     src="/logo.jpg"
                     alt="Auction Portal Logo"
@@ -59,8 +61,8 @@ export const Header = ({ currentView = 'auctions', onViewChange, showNavigation 
                       e.currentTarget.nextElementSibling!.style.display = 'flex';
                     }}
                   />
-                  <div className="w-24 h-16 bg-gradient-primary rounded-lg items-center justify-center hidden">
-                    <Gavel className="w-10 h-10 text-primary-foreground" />
+                  <div className="w-32 h-20 bg-gradient-primary rounded-lg items-center justify-center hidden">
+                    <Gavel className="w-12 h-12 text-primary-foreground" />
                   </div>
                 </div>
                 <h1 className="text-3xl font-bold text-foreground">Auction Portal</h1>
@@ -83,6 +85,7 @@ export const Header = ({ currentView = 'auctions', onViewChange, showNavigation 
                       variant={getButtonVariant('services')}
                       size="sm"
                       onClick={() => {
+                        console.log('Header: Services button clicked, isAdmin:', isAdmin);
                         if (onViewChange) onViewChange('services');
                       }}
                     >
@@ -95,6 +98,7 @@ export const Header = ({ currentView = 'auctions', onViewChange, showNavigation 
             </div>
 
             <div className="flex items-center gap-6">
+              <ResponsiveViewTool />
               <ThemeSelector />
 
               {showNavigation && (

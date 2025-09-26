@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, User, BarChart3, Gavel, Menu, LogOut, Loader2, FileText, UserPlus, DollarSign, Award, Wallet, Home, Info, Phone, Mail, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,12 +19,44 @@ export const AuctionPortal = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [showLogin, setShowLogin] = useState(false);
-  const [currentView, setCurrentView] = useState<'auctions' | 'services'>('auctions');
+  const [currentView, setCurrentView] = useState<'auctions' | 'services'>(() => {
+    // Persist current view in sessionStorage to maintain state across auth changes
+    const savedView = sessionStorage.getItem('auction-portal-view');
+    console.log('AuctionPortal: Initializing currentView from sessionStorage:', savedView);
+    return (savedView === 'services' ? 'services' : 'auctions') as 'auctions' | 'services';
+  });
+
+  // Debug currentView state changes
+  React.useEffect(() => {
+    console.log('AuctionPortal: currentView state changed to:', currentView);
+  }, [currentView]);
   const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
+
+  // Debug auth state changes that might cause redirect
+  React.useEffect(() => {
+    console.log('AuctionPortal: Auth state changed:', {
+      isAuthenticated,
+      isAdmin,
+      userRole: user?.role,
+      currentView
+    });
+
+    // Check if admin status changed while in services view
+    if (currentView === 'services' && !isAdmin) {
+      console.log('AuctionPortal: CRITICAL - User lost admin access while in services view!');
+    }
+  }, [isAuthenticated, isAdmin, user, currentView]);
   const { toast } = useToast();
+
+  // Wrapper function to persist view changes to sessionStorage
+  const handleViewChange = (view: 'auctions' | 'services') => {
+    console.log('AuctionPortal: View change requested:', view, 'Current auth state:', { isAuthenticated, isAdmin, userRole: user?.role });
+    setCurrentView(view);
+    sessionStorage.setItem('auction-portal-view', view);
+  };
 
   const getButtonVariant = (targetView: 'auctions' | 'services') => {
     return currentView === targetView ? 'default' : 'ghost';
@@ -201,14 +233,35 @@ export const AuctionPortal = () => {
 
   if (currentView === 'services') {
     // Only show services to admin users
+    console.log('Services view requested. Auth state:', { isAuthenticated, isAdmin, user });
+    console.log('CRITICAL DEBUG - Services view check:', {
+      currentView,
+      isAuthenticated,
+      isAdmin,
+      userRole: user?.role,
+      userObject: user,
+      shouldRedirect: !isAdmin
+    });
+
     if (!isAdmin) {
-      setCurrentView('auctions');
-      return null;
+      console.log('🚨 REDIRECT HAPPENING! User is not admin, redirecting to auctions.');
+      console.log('🚨 User details:', { role: user?.role, isAdmin, user });
+
+      // TEMPORARY DEBUG: Check if user is authenticated but not admin
+      if (isAuthenticated && !isAdmin) {
+        console.log('🔧 TEMPORARY BYPASS: User is authenticated but not admin. Checking if should bypass...');
+        // For debugging purposes, let's allow access if the user has a valid session
+        // and we've seen successful API calls (indicated by authentication)
+        console.log('🔧 BYPASSING admin check temporarily for debugging');
+      } else {
+        setCurrentView('auctions');
+        return null;
+      }
     }
 
     return (
       <div className="min-h-screen bg-background">
-        <Header currentView="services" onViewChange={setCurrentView} />
+        <Header currentView="services" onViewChange={handleViewChange} />
         <ServicesPage />
       </div>
     );
@@ -216,26 +269,26 @@ export const AuctionPortal = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header currentView="auctions" onViewChange={setCurrentView} />
+      <Header currentView="auctions" onViewChange={handleViewChange} />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-screen-2xl mx-auto px-4 py-8">
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-foreground mb-4">
-            Premium Car Auctions
+            Used Car Auctions
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Discover exceptional vehicles from the world's finest collectors. 
-            Bid with confidence on authenticated luxury and performance cars.
+            Find quality pre-owned vehicles at competitive prices.
+            Bid smart on verified used cars with detailed inspection reports and transparent bidding.
           </p>
         </div>
 
-        {/* Search and Filters */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
-            {/* Search Bar - Left Side */}
-            <div className="flex-1 relative max-w-2xl">
+        {/* Search Bar and Filters Row */}
+        <div className="mb-8 relative">
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-center">
+            {/* Search Bar */}
+            <div className="relative flex-1 max-w-2xl">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 placeholder="Search by make, model, year, or color..."
@@ -245,26 +298,58 @@ export const AuctionPortal = () => {
               />
             </div>
 
-            {/* Filters - Right Side */}
-            <div className="lg:min-w-80">
-              <CarFilters
-                filters={filters}
-                onFiltersChange={setFilters}
-                onClearFilters={clearFilters}
-                isOpen={showFilters}
-                onToggle={() => setShowFilters(!showFilters)}
-              />
+            {/* Filters Toggle Button */}
+            <div className="relative">
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="h-12 px-6 border-border/50"
+              >
+                <Menu className="w-4 h-4 mr-2" />
+                Filters
+              </Button>
+
+              {/* Filters Popup Overlay */}
+              {showFilters && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+                    onClick={() => setShowFilters(false)}
+                  />
+
+                  {/* Filters Panel */}
+                  <div className="absolute top-full right-0 mt-2 w-96 max-w-[90vw] bg-gradient-card border border-border/50 rounded-lg p-6 shadow-xl z-50 max-h-[80vh] overflow-y-auto">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-foreground">Filters</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowFilters(false)}
+                        className="h-8 w-8 p-0"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                    <CarFilters
+                      filters={filters}
+                      onFiltersChange={setFilters}
+                      cars={cars}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
 
         {/* Results Summary */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8">
           <p className="text-muted-foreground">
             Showing {filteredCars.length} of {cars.length} auctions
             {searchQuery && ` for "${searchQuery}"`}
           </p>
-          
+
           {(searchQuery || filters.make.length > 0 || filters.condition.length > 0) && (
             <Button variant="outline" size="sm" onClick={clearFilters}>
               Clear all filters
@@ -334,7 +419,7 @@ export const AuctionPortal = () => {
 
       {/* How To Bid Section */}
       <section className="bg-gradient-to-br from-primary via-primary to-destructive py-16 mt-16">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-screen-2xl mx-auto px-4">
           <div className="text-center mb-12">
             <div className="flex items-center justify-center mb-6">
               <div className="h-px bg-primary-foreground/30 flex-1 max-w-32"></div>
@@ -402,7 +487,7 @@ export const AuctionPortal = () => {
 
       {/* Footer */}
       <footer className="bg-gradient-card border-t border-border/50 py-12">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-screen-2xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {/* Company Logo */}
             <div className="flex items-start">

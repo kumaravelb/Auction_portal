@@ -55,7 +55,7 @@ export const themes = [
 ];
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark-gold');
+  const [theme, setTheme] = useState<Theme>('light-gold');
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('auction-portal-theme') as Theme;

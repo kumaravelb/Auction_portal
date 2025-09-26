@@ -1,0 +1,555 @@
+import { useState, useEffect, useMemo } from 'react';
+import { CheckCircle, XCircle, RefreshCw, User, Phone, Mail, Calendar, CreditCard, AlertTriangle, Search, Filter, Users, TrendingUp, DollarSign, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/components/ui/use-toast';
+import { userService, UserWithPaymentStatus } from '@/services/userService';
+
+export const UserManagementDashboard = () => {
+  const [users, setUsers] = useState<UserWithPaymentStatus[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingUserId, setProcessingUserId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const { toast } = useToast();
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      console.log('Loading users from API...');
+      const userData = await userService.getAllUsersWithPaymentStatus();
+      console.log('Users loaded successfully:', userData);
+      console.log('Dashboard: About to setUsers with', userData?.length, 'users');
+      setUsers(userData);
+      console.log('Dashboard: setUsers completed, users state should now be updated');
+    } catch (error) {
+      console.error('Error loading users:', error);
+      console.error('Error details:', error instanceof Error ? error.message : String(error));
+      toast({
+        title: "Error",
+        description: "Failed to load user data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log('UserManagementDashboard: Component mounted, loading users...');
+    loadUsers();
+  }, []);
+
+  const handleApprove = async (userId: number) => {
+    try {
+      setProcessingUserId(userId);
+      await userService.approveUser(userId);
+
+      toast({
+        title: "Success",
+        description: "User has been approved successfully.",
+        variant: "default",
+      });
+
+      // Refresh the user list
+      await loadUsers();
+    } catch (error) {
+      console.error('Error approving user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingUserId(null);
+    }
+  };
+
+  const handleReject = async (userId: number) => {
+    try {
+      setProcessingUserId(userId);
+      await userService.rejectUser(userId);
+
+      toast({
+        title: "Success",
+        description: "User has been rejected successfully.",
+        variant: "default",
+      });
+
+      // Refresh the user list
+      await loadUsers();
+    } catch (error) {
+      console.error('Error rejecting user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingUserId(null);
+    }
+  };
+
+  const getPaymentStatusBadge = (status?: string) => {
+    if (!status) {
+      return <Badge variant="secondary" className="bg-gray-100 text-gray-600">No Payment</Badge>;
+    }
+
+    switch (status.toUpperCase()) {
+      case 'ACCEPT':
+      case 'ACCEPTED':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Accepted</Badge>;
+      case 'PENDING':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case 'REJECTED':
+        return <Badge variant="destructive" className="bg-red-100 text-red-800">Rejected</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getUserStatusBadge = (userActYn: string) => {
+    return userActYn === '1'
+      ? <Badge variant="default" className="bg-blue-100 text-blue-800">Active</Badge>
+      : <Badge variant="secondary" className="bg-gray-100 text-gray-600">Inactive</Badge>;
+  };
+
+  const canShowActionButtons = (user: UserWithPaymentStatus) => {
+    // Show approve/reject buttons for all inactive users
+    return user.userActYn === '0';
+  };
+
+  // Filter and search users
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const matchesSearch =
+        (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.phoneNumber || '').includes(searchTerm) ||
+        (user.civilId || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus = statusFilter === 'all' ||
+        (statusFilter === 'active' && user.userActYn === '1') ||
+        (statusFilter === 'inactive' && user.userActYn === '0');
+
+      const matchesPayment = paymentFilter === 'all' ||
+        (paymentFilter === 'accepted' && user.phPayStatus?.toUpperCase() === 'ACCEPT') ||
+        (paymentFilter === 'pending' && user.phPayStatus?.toUpperCase() === 'PENDING') ||
+        (paymentFilter === 'rejected' && user.phPayStatus?.toUpperCase() === 'REJECTED') ||
+        (paymentFilter === 'none' && !user.phPayStatus);
+
+      return matchesSearch && matchesStatus && matchesPayment;
+    });
+  }, [users, searchTerm, statusFilter, paymentFilter]);
+
+  // Pagination calculations
+  const totalFilteredUsers = filteredUsers.length;
+  const totalPages = Math.ceil(totalFilteredUsers / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, paymentFilter]);
+
+  // Pagination handlers
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setItemsPerPage(newSize);
+    setCurrentPage(1);
+  };
+
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const totalUsers = users.length;
+    const activeUsers = users.filter(u => u.userActYn === '1').length;
+    const pendingApproval = users.filter(u => u.phPayStatus?.toUpperCase() === 'ACCEPT' && u.userActYn === '0').length;
+    const totalRevenue = users.reduce((sum, u) => sum + (u.paymentAmount || 0), 0);
+
+    return {
+      totalUsers,
+      activeUsers,
+      pendingApproval,
+      totalRevenue
+    };
+  }, [users]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Loading users...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Users</p>
+                <p className="text-2xl font-bold text-foreground">{stats.totalUsers}</p>
+              </div>
+              <Users className="w-8 h-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Active Users</p>
+                <p className="text-2xl font-bold text-green-600">{stats.activeUsers}</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Pending Approval</p>
+                <p className="text-2xl font-bold text-orange-600">{stats.pendingApproval}</p>
+              </div>
+              <Clock className="w-8 h-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Revenue</p>
+                <p className="text-2xl font-bold text-purple-600">QAR {stats.totalRevenue.toLocaleString()}</p>
+              </div>
+              <DollarSign className="w-8 h-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main User Management Card */}
+      <Card className="bg-gradient-card border-border/50">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <User className="w-6 h-6 text-primary" />
+              <div>
+                <CardTitle className="text-foreground">User Management Dashboard</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Manage user registrations and payment approvals ({totalFilteredUsers} total, showing {startIndex + 1}-{Math.min(endIndex, totalFilteredUsers)} on page {currentPage} of {totalPages})
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={loadUsers}
+              variant="outline"
+              size="sm"
+              disabled={loading}
+              className="border-border"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="flex flex-col md:flex-row gap-4 mt-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users by name, email, phone, or civil ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-background border-border/50"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px] bg-background border-border/50">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                <SelectTrigger className="w-[140px] bg-background border-border/50">
+                  <SelectValue placeholder="Payment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Payments</SelectItem>
+                  <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="none">No Payment</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          {totalFilteredUsers === 0 ? (
+            searchTerm || statusFilter !== 'all' || paymentFilter !== 'all' ? (
+              <div className="text-center py-8">
+                <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground">No Matching Users</h3>
+                <p className="text-muted-foreground">Try adjusting your search or filters.</p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setPaymentFilter('all');
+                  }}
+                  className="mt-4"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground">No Users Found</h3>
+                <p className="text-muted-foreground">No user registrations available at the moment.</p>
+              </div>
+            )
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[120px]">User Info</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Payment Method</TableHead>
+                      <TableHead>Payment Status</TableHead>
+                      <TableHead>User Status</TableHead>
+                      <TableHead>Registration Date</TableHead>
+                      <TableHead className="text-center min-w-[200px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedUsers.map((user) => (
+                      <TableRow key={user.userId} className="hover:bg-muted/50">
+                        <TableCell>
+                          <div>
+                            <div className="font-medium text-foreground">{user.name}</div>
+                            <div className="text-sm text-muted-foreground">ID: {user.civilId}</div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1 text-sm">
+                              <Mail className="w-3 h-3" />
+                              <span className="text-muted-foreground truncate max-w-[150px]" title={user.email}>
+                                {user.email}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-sm">
+                              <Phone className="w-3 h-3" />
+                              <span className="text-muted-foreground">{user.phoneNumber}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {user.userType}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <CreditCard className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-sm">{user.paymentMethod}</span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          {getPaymentStatusBadge(user.phPayStatus)}
+                          {user.paymentAmount && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              QAR {user.paymentAmount.toLocaleString()}
+                            </div>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          {getUserStatusBadge(user.userActYn)}
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-sm">
+                              {new Date(user.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex gap-2 justify-center">
+                            {canShowActionButtons(user) ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApprove(user.userId)}
+                                  disabled={processingUserId === user.userId}
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  {processingUserId === user.userId ? (
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="w-3 h-3 mr-1" />
+                                      Approve
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleReject(user.userId)}
+                                  disabled={processingUserId === user.userId}
+                                >
+                                  {processingUserId === user.userId ? (
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <XCircle className="w-3 h-3 mr-1" />
+                                      Reject
+                                    </>
+                                  )}
+                                </Button>
+                              </>
+                            ) : (
+                              <span className="text-xs text-muted-foreground px-2 py-1">
+                                Already Active
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination Controls */}
+              {totalFilteredUsers > 0 && (
+                <div className="mt-6 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Show</span>
+                    <Select
+                      value={itemsPerPage.toString()}
+                      onValueChange={(value) => handlePageSizeChange(Number(value))}
+                    >
+                      <SelectTrigger className="w-20 bg-background border-border/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-muted-foreground">entries</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                      className="border-border/50"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNumber;
+                        if (totalPages <= 5) {
+                          pageNumber = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNumber = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNumber = totalPages - 4 + i;
+                        } else {
+                          pageNumber = currentPage - 2 + i;
+                        }
+
+                        return (
+                          <Button
+                            key={pageNumber}
+                            variant={currentPage === pageNumber ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(pageNumber)}
+                            className="w-8 h-8 p-0 border-border/50"
+                          >
+                            {pageNumber}
+                          </Button>
+                        );
+                      })}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className="border-border/50"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+
+                  <div className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages} ({totalFilteredUsers} total entries)
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

@@ -121,7 +121,7 @@ export default function VehicleDetail() {
   return (
     <div className="min-h-screen bg-background">
       <Header currentView="detail" showNavigation={false} />
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-screen-2xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-6">
           <div>

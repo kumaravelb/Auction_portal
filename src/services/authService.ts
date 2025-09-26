@@ -1,7 +1,7 @@
 import { User } from '@/types/auction';
 import { SHA1 } from '@/utils/sha1';
 
-const API_BASE_URL = 'http://localhost:8081/api/v1';
+const API_BASE_URL = '/api/v1';
 
 interface LoginRequest {
   emailId: string;
@@ -138,6 +138,10 @@ class AuthService {
       const data: LoginResponse = await response.json();
 
       if (data.success && data.data) {
+        console.log('AuthService: Login response data:', data.data);
+        console.log('AuthService: User data from response:', data.data.user);
+        console.log('AuthService: userType from response:', data.data.user.userType);
+
         this.token = data.data.token;
         this.user = {
           id: data.data.user.id ? data.data.user.id.toString() : '1',
@@ -150,6 +154,9 @@ class AuthService {
           totalBids: 0,
           wonAuctions: 0,
         };
+
+        console.log('AuthService: Final user object created:', this.user);
+        console.log('AuthService: Role assigned:', this.user.role);
 
         // Store in localStorage
         localStorage.setItem('auth_token', this.token);

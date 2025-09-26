@@ -5,7 +5,65 @@
 /* Premium Auction Portal Design System - All colors MUST be HSL */
 
 @layer base {
-  :root,
+  :root {
+    /* Professional blue theme with light background */
+    --background: 0 0% 100%;
+    --foreground: 222 84% 4.9%;
+
+    --card: 0 0% 98%;
+    --card-foreground: 222 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 84% 4.9%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 84% 4.9%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    /* Premium gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(213 94% 68%));
+    --gradient-dark: linear-gradient(180deg, hsl(0 0% 98%), hsl(0 0% 95%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 0% 98%));
+
+    /* Shadows */
+    --shadow-premium: 0 25px 50px -12px hsl(222 84% 4.9% / 0.15);
+    --shadow-card: 0 10px 30px -10px hsl(222 84% 4.9% / 0.1);
+    --shadow-glow: 0 0 30px hsl(217 91% 60% / 0.15);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
+  }
+
   [data-theme="dark-gold"] {
     /* Premium dark theme with gold accents */
     --background: 222 47% 6%;
@@ -39,21 +97,13 @@
     --input: 222 47% 12%;
     --ring: 45 93% 47%;
 
-    --radius: 0.75rem;
-
-    /* Premium gradients */
     --gradient-primary: linear-gradient(135deg, hsl(45 93% 47%), hsl(35 91% 50%));
     --gradient-dark: linear-gradient(180deg, hsl(222 47% 8%), hsl(222 47% 6%));
     --gradient-card: linear-gradient(145deg, hsl(222 47% 9%), hsl(222 47% 7%));
-    
-    /* Shadows */
+
     --shadow-premium: 0 25px 50px -12px hsl(222 47% 3% / 0.8);
     --shadow-card: 0 10px 30px -10px hsl(222 47% 3% / 0.5);
     --shadow-glow: 0 0 30px hsl(45 93% 47% / 0.2);
-
-    /* Animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 222 47% 8%;
     --sidebar-foreground: 210 40% 98%;
@@ -66,53 +116,53 @@
   }
 
   [data-theme="dark-blue"] {
-    /* Professional blue theme */
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    /* Professional blue theme with light background */
+    --background: 0 0% 100%;
+    --foreground: 222 84% 4.9%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 98%;
+    --card-foreground: 222 84% 4.9%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 84% 4.9%;
 
     --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 6%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 222 47% 12%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 84% 4.9%;
 
-    --muted: 222 47% 12%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
     --accent: 217 91% 60%;
-    --accent-foreground: 222 47% 6%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
     --success: 142 71% 45%;
-    --success-foreground: 210 40% 98%;
+    --success-foreground: 0 0% 100%;
 
-    --border: 222 47% 15%;
-    --input: 222 47% 12%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
     --ring: 217 91% 60%;
 
     --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(213 94% 68%));
-    --gradient-dark: linear-gradient(180deg, hsl(222 47% 8%), hsl(222 47% 6%));
-    --gradient-card: linear-gradient(145deg, hsl(222 47% 9%), hsl(222 47% 7%));
-    
-    --shadow-premium: 0 25px 50px -12px hsl(222 47% 3% / 0.8);
-    --shadow-card: 0 10px 30px -10px hsl(222 47% 3% / 0.5);
-    --shadow-glow: 0 0 30px hsl(217 91% 60% / 0.2);
+    --gradient-dark: linear-gradient(180deg, hsl(0 0% 98%), hsl(0 0% 95%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 0% 98%));
 
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 210 40% 98%;
+    --shadow-premium: 0 25px 50px -12px hsl(222 84% 4.9% / 0.15);
+    --shadow-card: 0 10px 30px -10px hsl(222 84% 4.9% / 0.1);
+    --shadow-glow: 0 0 30px hsl(217 91% 60% / 0.15);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 222 47% 6%;
-    --sidebar-accent: 222 47% 12%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 47% 15%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217 91% 60%;
   }
 
